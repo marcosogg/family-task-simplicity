@@ -182,7 +182,7 @@ const Index = () => {
                 <SelectValue placeholder="Filter by assignee..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Members</SelectItem>
+                <SelectItem value="all">All Members</SelectItem>
                 {uniqueAssignees.map(assignee => (
                   <SelectItem key={assignee} value={assignee}>
                     {assignee}
