@@ -4,11 +4,25 @@ interface TaskCardProps {
   title: string;
   assignee: string;
   dueDate: string;
+  priority?: string;
   completed: boolean;
   onToggle: () => void;
 }
 
-export const TaskCard = ({ title, assignee, dueDate, completed, onToggle }: TaskCardProps) => {
+export const TaskCard = ({ title, assignee, dueDate, priority, completed, onToggle }: TaskCardProps) => {
+  const getPriorityColor = (priority?: string) => {
+    switch (priority?.toLowerCase()) {
+      case "high":
+        return "text-red-500";
+      case "medium":
+        return "text-yellow-500";
+      case "low":
+        return "text-green-500";
+      default:
+        return "text-gray-500";
+    }
+  };
+
   return (
     <div 
       className={`p-4 rounded-lg shadow-sm border transition-all duration-200 animate-scale-in
@@ -20,6 +34,11 @@ export const TaskCard = ({ title, assignee, dueDate, completed, onToggle }: Task
             {title}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">Assigned to: {assignee}</p>
+          {priority && (
+            <p className={`text-sm mt-1 ${getPriorityColor(priority)}`}>
+              Priority: {priority}
+            </p>
+          )}
         </div>
         <button
           onClick={onToggle}
