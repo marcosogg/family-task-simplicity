@@ -15,6 +15,7 @@ export type Database = {
           category: string
           completed: boolean
           created_at: string
+          description: string | null
           id: number
           priority: string
           title: string
@@ -25,6 +26,7 @@ export type Database = {
           category: string
           completed?: boolean
           created_at?: string
+          description?: string | null
           id?: never
           priority: string
           title: string
@@ -35,6 +37,7 @@ export type Database = {
           category?: string
           completed?: boolean
           created_at?: string
+          description?: string | null
           id?: never
           priority?: string
           title?: string
