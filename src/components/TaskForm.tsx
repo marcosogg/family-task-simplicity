@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,35 +10,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 
 interface TaskFormProps {
   onSubmit: (task: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
 const FAMILY_MEMBERS = ["Tommy", "Sarah", "Mom", "Dad"];
 const PRIORITIES = ["Low", "Medium", "High"];
 const CATEGORIES = ["Homework", "Chores", "Activities", "Other"];
 
-export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
+export const TaskForm = ({ onSubmit, onCancel, initialData }: TaskFormProps) => {
   const { toast } = useToast();
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [assignee, setAssignee] = useState("");
-  const [dueDate, setDueDate] = useState<Date>();
-  const [priority, setPriority] = useState("Medium");
-  const [category, setCategory] = useState("");
+  const [title, setTitle] = useState(initialData?.title || "");
+  const [description, setDescription] = useState(initialData?.description || "");
+  const [assignee, setAssignee] = useState(initialData?.assignee || "");
+  const [priority, setPriority] = useState(initialData?.priority || "Medium");
+  const [category, setCategory] = useState(initialData?.category || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -54,26 +44,20 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
     if (!validate()) return;
 
     const task = {
-      id: Date.now(),
+      id: initialData?.id || Date.now(),
       title,
       description,
       assignee,
-      dueDate: dueDate ? format(dueDate, "PPP") : undefined,
       priority,
       category,
-      completed: false,
+      completed: initialData?.completed || false,
     };
 
     onSubmit(task);
     toast({
-      title: "Task created successfully! 🎉",
-      description: `"${title}" has been assigned to ${assignee}`,
+      title: initialData ? "Task updated successfully! 🎉" : "Task created successfully! 🎉",
+      description: `"${title}" has been ${initialData ? 'updated' : 'assigned'} to ${assignee}`,
     });
-  };
-
-  const handleDateSelect = (date: Date | undefined) => {
-    setDueDate(date);
-    setIsCalendarOpen(false);
   };
 
   return (
@@ -121,35 +105,6 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
       </div>
 
       <div className="space-y-2">
-        <Label>Due Date</Label>
-        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dueDate && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dueDate ? format(dueDate, "PPP") : "Pick a date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dueDate}
-              onSelect={handleDateSelect}
-              initialFocus
-              disabled={(date) =>
-                date < new Date(new Date().setHours(0, 0, 0, 0))
-              }
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      <div className="space-y-2">
         <Label>Priority</Label>
         <Select value={priority} onValueChange={setPriority}>
           <SelectTrigger>
@@ -185,7 +140,7 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit">Create Task</Button>
+        <Button type="submit">{initialData ? 'Update' : 'Create'} Task</Button>
       </div>
     </form>
   );

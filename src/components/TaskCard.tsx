@@ -1,15 +1,16 @@
-import { Check, Clock } from "lucide-react";
+import { Check, Clock, Edit } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface TaskCardProps {
   title: string;
   assignee: string;
-  dueDate: string;
   priority?: string;
   completed: boolean;
   onToggle: () => void;
+  onEdit: () => void;
 }
 
-export const TaskCard = ({ title, assignee, dueDate, priority, completed, onToggle }: TaskCardProps) => {
+export const TaskCard = ({ title, assignee, priority, completed, onToggle, onEdit }: TaskCardProps) => {
   const getPriorityColor = (priority?: string) => {
     switch (priority?.toLowerCase()) {
       case "high":
@@ -40,17 +41,25 @@ export const TaskCard = ({ title, assignee, dueDate, priority, completed, onTogg
             </p>
           )}
         </div>
-        <button
-          onClick={onToggle}
-          className={`p-2 rounded-full transition-colors
-            ${completed ? 'bg-primary text-white' : 'bg-secondary text-primary hover:bg-primary hover:text-white'}`}
-        >
-          <Check className="w-4 h-4" />
-        </button>
-      </div>
-      <div className="flex items-center mt-3 text-sm text-muted-foreground">
-        <Clock className="w-4 h-4 mr-1" />
-        <span>Due: {dueDate}</span>
+        <div className="flex gap-2">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={onEdit}
+            className="h-8 w-8"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            onClick={onToggle}
+            className={`h-8 w-8 ${
+              completed ? 'bg-primary text-white' : 'bg-secondary text-primary hover:bg-primary hover:text-white'
+            }`}
+          >
+            <Check className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

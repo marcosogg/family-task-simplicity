@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskForm } from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ interface Task {
   title: string;
   description?: string;
   assignee: string;
-  dueDate?: string;
   priority: string;
   category?: string;
   completed: boolean;
@@ -29,7 +28,6 @@ const Index = () => {
       id: 1,
       title: "Complete homework",
       assignee: "Tommy",
-      dueDate: "Today",
       priority: "High",
       completed: false,
     },
@@ -37,7 +35,6 @@ const Index = () => {
       id: 2,
       title: "Clean room",
       assignee: "Sarah",
-      dueDate: "Tomorrow",
       priority: "Medium",
       completed: true,
     },
@@ -45,12 +42,12 @@ const Index = () => {
       id: 3,
       title: "Family game night",
       assignee: "Everyone",
-      dueDate: "Friday",
       priority: "Low",
       completed: false,
     },
   ]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const toggleTask = (taskId: number) => {
     setTasks(tasks.map(task => {
@@ -66,9 +63,26 @@ const Index = () => {
     }));
   };
 
-  const handleCreateTask = (newTask: Task) => {
-    setTasks([newTask, ...tasks]);
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setIsFormOpen(true);
+  };
+
+  const handleSaveTask = (updatedTask: Task) => {
+    if (editingTask) {
+      setTasks(tasks.map(task => 
+        task.id === updatedTask.id ? updatedTask : task
+      ));
+    } else {
+      setTasks([updatedTask, ...tasks]);
+    }
     setIsFormOpen(false);
+    setEditingTask(null);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingTask(null);
   };
 
   return (
@@ -85,14 +99,15 @@ const Index = () => {
           </Button>
         </div>
 
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <Dialog open={isFormOpen} onOpenChange={handleCloseForm}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>Create New Task</DialogTitle>
+              <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
             </DialogHeader>
             <TaskForm
-              onSubmit={handleCreateTask}
-              onCancel={() => setIsFormOpen(false)}
+              onSubmit={handleSaveTask}
+              onCancel={handleCloseForm}
+              initialData={editingTask}
             />
           </DialogContent>
         </Dialog>
@@ -103,9 +118,10 @@ const Index = () => {
               key={task.id}
               title={task.title}
               assignee={task.assignee}
-              dueDate={task.dueDate || "No due date"}
+              priority={task.priority}
               completed={task.completed}
               onToggle={() => toggleTask(task.id)}
+              onEdit={() => handleEditTask(task)}
             />
           ))}
         </div>
