@@ -39,6 +39,7 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -68,6 +69,11 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
       title: "Task created successfully! 🎉",
       description: `"${title}" has been assigned to ${assignee}`,
     });
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setDueDate(date);
+    setIsCalendarOpen(false);
   };
 
   return (
@@ -116,7 +122,7 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
 
       <div className="space-y-2">
         <Label>Due Date</Label>
-        <Popover>
+        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -133,7 +139,7 @@ export const TaskForm = ({ onSubmit, onCancel }: TaskFormProps) => {
             <Calendar
               mode="single"
               selected={dueDate}
-              onSelect={setDueDate}
+              onSelect={handleDateSelect}
               initialFocus
               disabled={(date) =>
                 date < new Date(new Date().setHours(0, 0, 0, 0))
