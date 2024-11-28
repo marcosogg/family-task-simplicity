@@ -1,11 +1,12 @@
 import { Check, Edit } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
+import { TaskPriority } from "@/types";
 
 interface TaskCardProps {
   title: string;
   assignee: string;
-  priority?: string;
+  priority: TaskPriority;
   category: string;
   completed: boolean;
   onToggle: () => void;
@@ -16,20 +17,21 @@ export const TaskCard = ({
   title, 
   assignee, 
   priority, 
+  category,
   completed, 
   onToggle, 
   onEdit 
 }: TaskCardProps) => {
-  const getPriorityColor = (priority?: string) => {
-    switch (priority?.toLowerCase()) {
-      case "high":
-        return "text-red-500";
-      case "medium":
-        return "text-yellow-500";
-      case "low":
-        return "text-green-500";
+  const getPriorityColor = (priority: TaskPriority) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-100 text-red-700 border-red-200";
+      case "Medium":
+        return "bg-orange-100 text-orange-700 border-orange-200";
+      case "Low":
+        return "bg-green-100 text-green-700 border-green-200";
       default:
-        return "text-gray-500";
+        return "bg-gray-100 text-gray-700 border-gray-200";
     }
   };
 
@@ -37,11 +39,10 @@ export const TaskCard = ({
     <div 
       className={cn(
         "p-4 rounded-lg shadow-sm border transition-all duration-300 animate-scale-in group",
-        completed ? 'bg-secondary/50 border-secondary' : 'bg-white border-gray-100 hover:border-primary/20',
-        completed ? 'opacity-75' : 'opacity-100'
+        completed ? 'bg-secondary/50 border-secondary opacity-75' : 'bg-white border-gray-100 hover:border-primary/20 opacity-100'
       )}
     >
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <h3 className={cn(
             "font-medium transition-all duration-300",
@@ -49,12 +50,20 @@ export const TaskCard = ({
           )}>
             {title}
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">Assigned to: {assignee}</p>
-          {priority && (
-            <p className={`text-sm mt-1 ${getPriorityColor(priority)}`}>
-              Priority: {priority}
-            </p>
-          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-sm text-muted-foreground">
+              Assigned to: {assignee}
+            </span>
+            <span className={cn(
+              "text-sm px-2 py-0.5 rounded-full",
+              getPriorityColor(priority)
+            )}>
+              {priority} Priority
+            </span>
+            <span className="text-sm text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              {category}
+            </span>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
