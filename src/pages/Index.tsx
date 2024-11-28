@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, ChevronDown, ChevronRight, Users, Folder } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskForm } from "@/components/TaskForm";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Task {
   id: number;
@@ -20,6 +27,8 @@ interface Task {
   category: string;
   completed: boolean;
 }
+
+type GroupBy = "category" | "assignee";
 
 const Index = () => {
   const { toast } = useToast();
@@ -52,13 +61,15 @@ const Index = () => {
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [groupBy, setGroupBy] = useState<GroupBy>("category");
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
 
-  const toggleCategory = (category: string) => {
-    setExpandedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
+  const toggleGroup = (group: string) => {
+    setExpandedGroups(prev =>
+      prev.includes(group)
+        ? prev.filter(g => g !== group)
+        : [...prev, group]
     );
   };
 
@@ -106,12 +117,21 @@ const Index = () => {
     setEditingTask(null);
   };
 
-  // Group tasks by category
-  const tasksByCategory = tasks.reduce((acc, task) => {
-    if (!acc[task.category]) {
-      acc[task.category] = [];
+  // Get unique assignees for filter dropdown
+  const uniqueAssignees = Array.from(new Set(tasks.map(task => task.assignee)));
+
+  // Filter tasks based on selected assignee
+  const filteredTasks = selectedAssignee
+    ? tasks.filter(task => task.assignee === selectedAssignee)
+    : tasks;
+
+  // Group tasks by category or assignee
+  const groupedTasks = filteredTasks.reduce((acc, task) => {
+    const groupKey = groupBy === "category" ? task.category : task.assignee;
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
     }
-    acc[task.category].push(task);
+    acc[groupKey].push(task);
     return acc;
   }, {} as Record<string, Task[]>);
 
@@ -129,6 +149,50 @@ const Index = () => {
           </Button>
         </div>
 
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Select
+              value={groupBy}
+              onValueChange={(value: GroupBy) => setGroupBy(value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Group by..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="category">
+                  <div className="flex items-center">
+                    <Folder className="w-4 h-4 mr-2" />
+                    Group by Category
+                  </div>
+                </SelectItem>
+                <SelectItem value="assignee">
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    Group by Assignee
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedAssignee}
+              onValueChange={setSelectedAssignee}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by assignee..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Members</SelectItem>
+                {uniqueAssignees.map(assignee => (
+                  <SelectItem key={assignee} value={assignee}>
+                    {assignee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <Dialog open={isFormOpen} onOpenChange={handleCloseForm}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -143,23 +207,25 @@ const Index = () => {
         </Dialog>
 
         <div className="space-y-6">
-          {Object.entries(tasksByCategory).map(([category, categoryTasks]) => (
-            <div key={category} className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {Object.entries(groupedTasks).map(([group, groupTasks]) => (
+            <div key={group} className="bg-white rounded-lg shadow-sm border border-gray-200">
               <button
-                onClick={() => toggleCategory(category)}
+                onClick={() => toggleGroup(group)}
                 className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50"
               >
-                <h2 className="text-lg font-semibold text-gray-900">{category}</h2>
-                {expandedCategories.includes(category) ? (
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {groupBy === "category" ? group : `Assigned to: ${group}`}
+                </h2>
+                {expandedGroups.includes(group) ? (
                   <ChevronDown className="h-5 w-5 text-gray-500" />
                 ) : (
                   <ChevronRight className="h-5 w-5 text-gray-500" />
                 )}
               </button>
               
-              {expandedCategories.includes(category) && (
+              {expandedGroups.includes(group) && (
                 <div className="p-4 space-y-4 border-t border-gray-200">
-                  {categoryTasks.map((task) => (
+                  {groupTasks.map((task) => (
                     <TaskCard
                       key={task.id}
                       title={task.title}
