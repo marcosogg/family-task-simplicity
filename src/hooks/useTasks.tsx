@@ -57,6 +57,10 @@ export const useTasks = () => {
 
   const saveTaskMutation = useMutation({
     mutationFn: async (updatedTask: Partial<Task>) => {
+      if (!session?.user?.id) {
+        throw new Error("No user session found");
+      }
+
       // If updating an existing task
       if (updatedTask.id) {
         // Remove the id from the update payload
@@ -72,7 +76,7 @@ export const useTasks = () => {
           .from("tasks")
           .insert({
             ...updatedTask,
-            user_id: session?.user?.id,
+            user_id: session.user.id,
           });
         if (error) throw error;
       }
