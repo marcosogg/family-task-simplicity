@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { TaskList } from "@/components/TaskList";
 import { FilterPanel } from "@/components/FilterPanel";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useSessionContext, useSupabaseClient } from "@supabase/auth-helpers-react";
 import {
   Dialog,
   DialogContent,
@@ -15,52 +17,74 @@ import { TaskForm } from "@/components/TaskForm";
 
 const Index = () => {
   const { toast } = useToast();
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 1,
-      title: "Complete homework",
-      assignee: "Tommy",
-      priority: "High",
-      category: "School",
-      completed: false,
-    },
-    {
-      id: 2,
-      title: "Clean room",
-      assignee: "Sarah",
-      priority: "Medium",
-      category: "Chores",
-      completed: true,
-    },
-    {
-      id: 3,
-      title: "Family game night",
-      assignee: "Everyone",
-      priority: "Low",
-      category: "Activities",
-      completed: false,
-    },
-  ]);
+  const navigate = useNavigate();
+  const { session, isLoading } = useSessionContext();
+  const supabase = useSupabaseClient();
   
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [selectedAssignee, setSelectedAssignee] = useState("all");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-  const uniqueAssignees = Array.from(new Set(tasks.map(task => task.assignee)));
-  const uniqueCategories = Array.from(new Set(tasks.map(task => task.category)));
+  useEffect(() => {
+    if (!isLoading && !session) {
+      navigate("/login");
+    }
+  }, [session, isLoading, navigate]);
 
-  const toggleTask = (taskId: number) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const newStatus = !task.completed;
+  useEffect(() => {
+    if (session) {
+      fetchTasks();
+    }
+  }, [session]);
+
+  const fetchTasks = async () => {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error fetching tasks",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTasks(data || []);
+  };
+
+  const toggleTask = async (taskId: number) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const { error } = await supabase
+      .from("tasks")
+      .update({ completed: !task.completed })
+      .eq("id", taskId);
+
+    if (error) {
+      toast({
+        title: "Error updating task",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setTasks(tasks.map(t => {
+      if (t.id === taskId) {
+        const newStatus = !t.completed;
         toast({
           title: newStatus ? "Task completed! 🎉" : "Task reopened",
-          description: task.title,
+          description: t.title,
         });
-        return { ...task, completed: newStatus };
+        return { ...t, completed: newStatus };
       }
-      return task;
+      return t;
     }));
   };
 
@@ -69,33 +93,60 @@ const Index = () => {
     setIsFormOpen(true);
   };
 
-  const handleSaveTask = (updatedTask: Task) => {
+  const handleSaveTask = async (updatedTask: any) => {
     if (editingTask) {
-      setTasks(tasks.map(task => 
-        task.id === updatedTask.id ? updatedTask : task
-      ));
-      toast({
-        title: "Task updated",
-        description: "The task has been successfully updated.",
-      });
+      const { error } = await supabase
+        .from("tasks")
+        .update({
+          title: updatedTask.title,
+          description: updatedTask.description,
+          assignee: updatedTask.assignee,
+          priority: updatedTask.priority,
+          category: updatedTask.category,
+        })
+        .eq("id", editingTask.id);
+
+      if (error) {
+        toast({
+          title: "Error updating task",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
     } else {
-      setTasks([updatedTask, ...tasks]);
-      toast({
-        title: "Task created",
-        description: "New task has been added successfully.",
-      });
+      const { error } = await supabase
+        .from("tasks")
+        .insert({
+          ...updatedTask,
+          user_id: session?.user?.id,
+        });
+
+      if (error) {
+        toast({
+          title: "Error creating task",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
+
+    await fetchTasks();
     setIsFormOpen(false);
     setEditingTask(null);
+    toast({
+      title: editingTask ? "Task updated successfully! 🎉" : "Task created successfully! 🎉",
+      description: `"${updatedTask.title}" has been ${editingTask ? "updated" : "assigned"} to ${updatedTask.assignee}`,
+    });
   };
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategories(prev =>
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
+  const uniqueAssignees = Array.from(new Set(tasks.map(task => task.assignee)));
+  const uniqueCategories = Array.from(new Set(tasks.map(task => task.category)));
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-muted flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-muted">
@@ -105,10 +156,21 @@ const Index = () => {
             <h1 className="text-3xl font-semibold text-gray-900">Family Tasks</h1>
             <p className="text-muted-foreground mt-1">Manage your family's daily activities</p>
           </div>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Task
-          </Button>
+          <div className="flex gap-4">
+            <Button onClick={() => setIsFormOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Task
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate("/login");
+              }}
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -119,7 +181,13 @@ const Index = () => {
               onAssigneeChange={setSelectedAssignee}
               categories={uniqueCategories}
               selectedCategories={selectedCategories}
-              onCategoryChange={handleCategoryChange}
+              onCategoryChange={(category) => {
+                setSelectedCategories(prev =>
+                  prev.includes(category)
+                    ? prev.filter(c => c !== category)
+                    : [...prev, category]
+                );
+              }}
             />
           </div>
 
@@ -137,7 +205,7 @@ const Index = () => {
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
-              <DialogTitle>{editingTask ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+              <DialogTitle>{editingTask ? "Edit Task" : "Create New Task"}</DialogTitle>
             </DialogHeader>
             <TaskForm
               onSubmit={handleSaveTask}
