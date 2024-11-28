@@ -9,8 +9,10 @@ export const useTasks = () => {
   const queryClient = useQueryClient();
 
   const { data: tasks = [], isLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+      
       const { data, error } = await supabase
         .from("tasks")
         .select("*")
@@ -27,7 +29,7 @@ export const useTasks = () => {
 
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!session?.user?.id,
   });
 
   const toggleTaskMutation = useMutation({
@@ -44,7 +46,7 @@ export const useTasks = () => {
       return taskId;
     },
     onSuccess: (taskId) => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', session?.user?.id] });
       const task = tasks.find(t => t.id === taskId);
       if (task) {
         toast({
@@ -63,7 +65,6 @@ export const useTasks = () => {
 
       // If updating an existing task
       if (updatedTask.id) {
-        // Remove the id from the update payload
         const { id, ...updateData } = updatedTask;
         const { error } = await supabase
           .from("tasks")
@@ -82,8 +83,15 @@ export const useTasks = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', session?.user?.id] });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error saving task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   return {
