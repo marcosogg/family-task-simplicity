@@ -57,13 +57,17 @@ export const useTasks = () => {
 
   const saveTaskMutation = useMutation({
     mutationFn: async (updatedTask: Partial<Task>) => {
+      // If updating an existing task
       if (updatedTask.id) {
+        // Remove the id from the update payload
+        const { id, ...updateData } = updatedTask;
         const { error } = await supabase
           .from("tasks")
-          .update(updatedTask)
-          .eq("id", updatedTask.id);
+          .update(updateData)
+          .eq("id", id);
         if (error) throw error;
       } else {
+        // For new tasks
         const { error } = await supabase
           .from("tasks")
           .insert({
